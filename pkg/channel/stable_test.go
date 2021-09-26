@@ -45,7 +45,7 @@ func TestStableChannel(t *testing.T) {
 		t.Fail()
 	}
 
-	err = reader.Close()
+	err = desc.Close()
 	if err != nil {
 		t.Error(err)
 		t.Fail()
@@ -80,6 +80,7 @@ func TestStableChannel(t *testing.T) {
 		t.Error("expected nothing to be read")
 		t.Fail()
 	}
+	desc.Close()
 
 	reader, err = desc.Open()
 	if err != nil {

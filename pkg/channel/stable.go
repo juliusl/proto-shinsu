@@ -97,13 +97,11 @@ func (s *StableDescriptor) Read(p []byte) (int, error) {
 		if ok {
 			discarded, err := s.content.Discard(curr.current)
 			if err != nil {
-				defer s.Close()
 				s.err = err
 				return 0, err
 			}
 
 			if discarded != curr.current {
-				defer s.Close()
 				s.err = errors.New("could not recover position from outage")
 				return 0, s.err
 			}
@@ -114,7 +112,6 @@ func (s *StableDescriptor) Read(p []byte) (int, error) {
 	err := s.IsStable()
 	if err != nil {
 		s.err = err
-		defer s.Close()
 		return 0, err
 	}
 
@@ -124,7 +121,6 @@ func (s *StableDescriptor) Read(p []byte) (int, error) {
 func (s *StableDescriptor) read(p []byte) (int, error) {
 	read, err := s.content.Read(p)
 	if err != nil {
-		defer s.Close()
 		s.err = err
 		return read, err
 	}

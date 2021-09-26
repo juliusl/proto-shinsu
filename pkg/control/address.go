@@ -95,5 +95,10 @@ func (s *Address) Request(ctx context.Context, body io.Reader) (*http.Request, e
 		return nil, err
 	}
 
-	return http.NewRequestWithContext(ctx, method, loc.String(), body)
+	req, err := http.NewRequestWithContext(ctx, method, loc.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
 }

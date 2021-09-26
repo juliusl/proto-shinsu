@@ -28,7 +28,7 @@ func testSource(ctx context.Context) *StableDescriptor {
 func TestTransientTransitionInterruption(t *testing.T) {
 	desc := &TransientDescriptor{}
 
-	desc.SetTransition(func(ctx context.Context, url *url.URL, reader io.ReadCloser) (*StableDescriptor, error) {
+	desc.SetTransition(func(ctx context.Context, url *url.URL, reader io.Reader) (*StableDescriptor, error) {
 		interrupt, err := InterruptedTransition(500, time.Millisecond*100)
 		if err != nil {
 			t.Error(err)
@@ -73,7 +73,7 @@ func TestTransientTransitionInterruption(t *testing.T) {
 		t.Fail()
 	}
 
-	desc, _ = desc.SetTransition(func(ctx context.Context, url *url.URL, reader io.ReadCloser) (*StableDescriptor, error) {
+	desc, _ = desc.SetTransition(func(ctx context.Context, url *url.URL, reader io.Reader) (*StableDescriptor, error) {
 		return &StableDescriptor{}, nil
 	})
 
@@ -142,7 +142,7 @@ func TestTransientChannel(t *testing.T) {
 		t.Fail()
 	}
 
-	modified, err = desc.SetTransition(func(ctx context.Context, url *url.URL, reader io.ReadCloser) (*StableDescriptor, error) {
+	modified, err = desc.SetTransition(func(ctx context.Context, url *url.URL, reader io.Reader) (*StableDescriptor, error) {
 		return testSource(ctx), nil
 	})
 	if err != nil {

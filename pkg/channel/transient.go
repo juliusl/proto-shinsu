@@ -23,7 +23,7 @@ type TransientDescriptor struct {
 }
 
 // SetTransition is a function that sets the current transition function. A transition function should only return a StableDescriptor when the transition has fully completed
-func (t *TransientDescriptor) SetTransition(transition func(ctx context.Context, url *url.URL, reader io.ReadCloser) (*StableDescriptor, error)) (*TransientDescriptor, error) {
+func (t *TransientDescriptor) SetTransition(transition TransitionFunction) (*TransientDescriptor, error) {
 	if t == nil {
 		return nil, errors.New("reference to transient descriptor is nil")
 	}
@@ -183,7 +183,7 @@ func (t *TransientDescriptor) ShouldTransition(ctx context.Context) (*TransientD
 	return nil, errors.New("descriptor is in an unknown state")
 }
 
-type TransitionFunction func(ctx context.Context, url *url.URL, reader io.ReadCloser) (*StableDescriptor, error)
+type TransitionFunction func(ctx context.Context, url *url.URL, reader io.Reader) (*StableDescriptor, error)
 
 func (t *TransientDescriptor) Transition(ctx context.Context) (*TransientDescriptor, error) {
 	if t == nil {
@@ -214,7 +214,7 @@ func (t *TransientDescriptor) Transition(ctx context.Context) (*TransientDescrip
 
 		// If transition should only return a stable descriptor if all of the data was transitioned
 		// Otherwise it should return ErrIncompleteTransition
-		stable, err := t.transition(ctx, t.location, content)
+		stable, err := t.transition(ctx, t.location, io.NopCloser(content))
 		if err != nil {
 			t.err = err
 
@@ -279,4 +279,15 @@ func (t *TransientDescriptor) Position() (current int, expected int, progress fl
 	defer t.RUnlock()
 
 	return t.offset, t.expected, float32(t.offset) / float32(t.expected), t.err
+}
+
+func (t *TransientDescriptor) Source() (*StableDescriptor, error) {
+	if t == nil {
+		return nil, errors.New("reference to transient descriptor is nil")
+	}
+	if t.source == nil {
+		return nil, errors.New("source is not set")
+	}
+
+	return t.source, nil
 }

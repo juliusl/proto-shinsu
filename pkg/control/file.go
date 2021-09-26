@@ -8,19 +8,23 @@ import (
 	"io/fs"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/juliusl/shinsu/pkg/channel"
 )
 
-func NewFileDescriptor(ctx context.Context, path string, stat func(string) (fs.FileInfo, error), open func(name string) (*os.File, error)) (*FileDescriptor, error) {
+func NewFileDescriptor(ctx context.Context, mediatype, path string, stat func(string) (os.FileInfo, error), open func(name string) (*os.File, error)) (*FileDescriptor, error) {
 	finfo, err := stat(path)
 	if err != nil {
 		return nil, err
 	}
 
 	desc := &FileDescriptor{}
-	desc.FromFileInfo(finfo)
+	desc.path = path
+	desc.mediaType = mediatype
+	desc.size = finfo.Size()
+	desc.modtime = finfo.ModTime()
 	desc.open = open
 	desc.stat = stat
 
@@ -53,12 +57,13 @@ func NewFileDescriptor(ctx context.Context, path string, stat func(string) (fs.F
 }
 
 type FileDescriptor struct {
-	path    string
-	size    int64
-	modtime time.Time
-	open    func(name string) (*os.File, error)
-	stat    func(string) (fs.FileInfo, error)
-	channel *channel.StableDescriptor
+	mediaType string
+	path      string
+	size      int64
+	modtime   time.Time
+	open      func(name string) (*os.File, error)
+	stat      func(string) (fs.FileInfo, error)
+	channel   *channel.StableDescriptor
 	http.Handler
 }
 
@@ -92,12 +97,18 @@ func (f *FileDescriptor) Channel() *channel.StableDescriptor {
 	return f.channel
 }
 
-func (f *FileDescriptor) FromFileInfo(info fs.FileInfo) {
-	f.path = info.Name()
-	f.size = info.Size()
-}
-
 func (f *FileDescriptor) ServeHTTP(writer http.ResponseWriter, req *http.Request) {
+	accept := req.Header.Get("Accept")
+	if accept == "" {
+		writer.WriteHeader(404)
+		return
+	}
+
+	if !strings.Contains(accept, f.mediaType) {
+		writer.WriteHeader(404)
+		return
+	}
+
 	readcloser, err := f.channel.Open()
 	if err != nil {
 		writer.WriteHeader(500)

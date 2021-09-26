@@ -43,14 +43,14 @@ type StableDescriptor struct {
 
 type HealthCheck = func() error
 
-func (s *StableDescriptor) AddHealthCheck(check func() error) (*StableDescriptor, error) {
+func (s *StableDescriptor) AddHealthChecks(check ...func() error) (*StableDescriptor, error) {
 	if s == nil {
 		return nil, errors.New("reference to descriptor is nil")
 	}
 	s.Lock()
 	defer s.Unlock()
 
-	s.checks = append(s.checks, check)
+	s.checks = append(s.checks, check...)
 
 	return s, nil
 }

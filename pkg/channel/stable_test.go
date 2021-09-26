@@ -23,7 +23,7 @@ func TestStableChannel(t *testing.T) {
 			return testResumedReader, nil
 		})
 
-	desc.AddHealthCheck(func() error {
+	desc.AddHealthChecks(func() error {
 		return testerr
 	})
 

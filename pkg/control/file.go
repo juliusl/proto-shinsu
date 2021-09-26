@@ -1,25 +1,120 @@
 package control
 
 import (
+	"context"
+	"errors"
+	"fmt"
+	"io"
+	"io/fs"
 	"net/http"
+	"os"
+	"time"
 
 	"github.com/juliusl/shinsu/pkg/channel"
 )
 
+func NewFileDescriptor(ctx context.Context, path string, stat func(string) (fs.FileInfo, error), open func(name string) (*os.File, error)) (*FileDescriptor, error) {
+	finfo, err := stat(path)
+	if err != nil {
+		return nil, err
+	}
+
+	desc := &FileDescriptor{}
+	desc.FromFileInfo(finfo)
+	desc.open = open
+	desc.stat = stat
+
+	ch := channel.CreateStableDescriptor(
+		ctx,
+		int(desc.size),
+		desc.Open,
+		desc.Resume)
+
+	ch, err = ch.AddHealthChecks(func() error {
+		finfo, err := stat(path)
+		if err != nil {
+			return err
+		}
+
+		if finfo.IsDir() {
+			return errors.New("path is a directory")
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	desc.channel = ch
+
+	return desc, nil
+}
+
 type FileDescriptor struct {
-	channel.StableDescriptor
+	path    string
+	size    int64
+	modtime time.Time
+	open    func(name string) (*os.File, error)
+	stat    func(string) (fs.FileInfo, error)
+	channel *channel.StableDescriptor
+	http.Handler
 }
 
-type fileResponseWriter struct {
+func (f *FileDescriptor) Open() (io.Reader, error) {
+	of, err := f.open(f.path)
+	if err != nil {
+		return nil, err
+	}
+
+	return of, nil
 }
 
-func (fileResponseWriter) Header() http.Header {
-	return nil
+func (f *FileDescriptor) Resume() (io.Reader, error) {
+	finfo, err := f.stat(f.path)
+	if err != nil {
+		return nil, err
+	}
+
+	if finfo.Size() != f.size {
+		return nil, errors.New("file has changed")
+	}
+
+	if f.modtime.After(finfo.ModTime()) {
+		return nil, errors.New("file has changed")
+	}
+
+	return f.Open()
 }
 
-func (fileResponseWriter) Write(p []byte) (int, error) {
-	return 0, nil
+func (f *FileDescriptor) Channel() *channel.StableDescriptor {
+	return f.channel
 }
 
-func (fileResponseWriter) WriteHeader(statusCode int) {
+func (f *FileDescriptor) FromFileInfo(info fs.FileInfo) {
+	f.path = info.Name()
+	f.size = info.Size()
+}
+
+func (f *FileDescriptor) ServeHTTP(writer http.ResponseWriter, req *http.Request) {
+	readcloser, err := f.channel.Open()
+	if err != nil {
+		writer.WriteHeader(500)
+		return
+	}
+
+	defer readcloser.Close()
+
+	written, err := io.Copy(writer, readcloser)
+	if err != nil {
+		writer.WriteHeader(500)
+		return
+	}
+
+	headers := writer.Header()
+	headers.Set("Content-Length", fmt.Sprint(written))
+	headers.Set("Content-Type", req.Header.Get("Content-Type"))
+
+	writer.WriteHeader(200)
 }

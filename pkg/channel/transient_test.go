@@ -2,6 +2,7 @@ package channel
 
 import (
 	"context"
+	"errors"
 	"io"
 	"net/url"
 	"strings"
@@ -51,8 +52,10 @@ func TestTransientTransitionInterruption(t *testing.T) {
 
 	current, total, progress, err := desc.Position()
 	if err != nil {
-		t.Error(err)
-		t.Fail()
+		if !errors.Is(err, ErrIncompleteTransition) {
+			t.Error(err)
+			t.Fail()
+		}
 	}
 
 	if current != 500 {
@@ -158,7 +161,7 @@ func TestTransientChannel(t *testing.T) {
 		t.Fail()
 	}
 
-	err = desc.Wait()
+	err = desc.Wait(time.Hour * 1)
 	if err != nil {
 		t.Error(err)
 		t.Fail()

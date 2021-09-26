@@ -249,7 +249,7 @@ func (t *TransientDescriptor) Transition(ctx context.Context) (*TransientDescrip
 	return t, nil
 }
 
-func (t *TransientDescriptor) Wait() error {
+func (t *TransientDescriptor) Wait(timeout time.Duration) error {
 	if t == nil {
 		return errors.New("reference to transient descriptor is nil")
 	}
@@ -258,7 +258,11 @@ func (t *TransientDescriptor) Wait() error {
 		return errors.New("this descriptor hasn't started to transition yet")
 	}
 
-	<-t.context.Done()
+	select {
+	case <-t.context.Done():
+	case <-time.After(timeout):
+		return errors.New("waiting for the transition has timed out")
+	}
 
 	t.RLock()
 	defer t.RUnlock()
@@ -274,5 +278,5 @@ func (t *TransientDescriptor) Position() (current int, expected int, progress fl
 	t.RLock()
 	defer t.RUnlock()
 
-	return t.offset, t.expected, float32(t.offset) / float32(t.expected), err
+	return t.offset, t.expected, float32(t.offset) / float32(t.expected), t.err
 }

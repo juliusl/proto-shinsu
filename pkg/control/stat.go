@@ -5,6 +5,6 @@ import (
 	"os"
 )
 
-func OSStat(path string) (fs.FileInfo, error) {
+func StatOS(path string) (fs.FileInfo, error) {
 	return os.Stat(path)
 }

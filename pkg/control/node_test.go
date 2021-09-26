@@ -54,7 +54,7 @@ func TestNodeAPI(t *testing.T) {
 	temp.WriteString("test string hello")
 	temp.Close()
 
-	fd, err := NewFileDescriptor(ctx, "+test", "test", OSStat, os.Open)
+	fd, err := NewFileDescriptor(ctx, "+test", "test", StatOS, os.Open)
 	if err != nil {
 		t.Error(err)
 		t.Fail()

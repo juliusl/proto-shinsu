@@ -10,8 +10,8 @@ type Node struct {
 	transport *NodeTransport
 }
 
-func (n *Node) AddAPI(root, term string, transition *StreamDescriptor) {
-	n.transport.api[fmt.Sprintf("%s/%s", root, term)] = transition
+func (n *Node) AddAPI(root, term string, streamDesc *StreamDescriptor) {
+	n.transport.api[fmt.Sprintf("%s/%s", root, term)] = streamDesc
 }
 
 func (n *Node) GetClient() *http.Client {
@@ -45,7 +45,6 @@ func (n *NodeTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 
 		cache := req.URL
 		cache.Scheme = "cache"
-
 		api.SetLocation(cache)
 		trans, err := api.ShouldTransition(req.Context())
 		if err != nil {

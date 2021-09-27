@@ -6,50 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
-	"io/ioutil"
-	"net/http"
-	"strconv"
 )
-
-// FromAddress is a function that returns an instance of a State struct
-func FromAddress(client *http.Client, address *Address, hash func([]byte) ([]byte, error)) (*State, error) {
-	method, url, err := address.APILocation()
-	if err != nil {
-		return nil, err
-	}
-
-	if method != http.MethodGet {
-		return nil, errors.New("address does not have required method GET")
-	}
-
-	resp, err := client.Get(url.String())
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	s := &State{}
-
-	s.mediatype = resp.Header.Get("Content-Type")
-	size, err := strconv.ParseInt(resp.Header.Get("Content-Length"), 10, 32)
-	if err != nil {
-		return nil, err
-	}
-	s.size = int(size)
-
-	content, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-	s.offset = len(content)
-	h, err := hash(content)
-	if err != nil {
-		return nil, err
-	}
-	s.hash = h
-
-	return s, nil
-}
 
 // State is an opaque type that can describe the state of a node in the control graph
 type State struct {

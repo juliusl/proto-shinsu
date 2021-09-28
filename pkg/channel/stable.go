@@ -95,13 +95,13 @@ func (s *StableDescriptor) Read(p []byte) (int, error) {
 	if errors.Is(s.err, ErrTemporaryOutage) {
 		curr, ok := s.err.(*IncompleteTransition)
 		if ok {
-			discarded, err := s.content.Discard(curr.current)
+			discarded, err := s.content.Discard(int(curr.current))
 			if err != nil {
 				s.err = err
 				return 0, err
 			}
 
-			if discarded != curr.current {
+			if discarded != int(curr.current) {
 				s.err = errors.New("could not recover position from outage")
 				return 0, s.err
 			}

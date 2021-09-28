@@ -11,12 +11,12 @@ import (
 // State is an opaque type that can describe the state of a node in the control graph
 type State struct {
 	mediatype string
-	offset    int
-	size      int
+	offset    int64
+	size      int64
 	hash      []byte
 }
 
-func (s State) Start(expectedsize int, expectedHash []byte) *State {
+func (s State) Start(expectedsize int64, expectedHash []byte) *State {
 	s.mediatype = TransientMediaType
 	s.offset = 0
 	s.size = expectedsize
@@ -99,8 +99,8 @@ func (s *State) Load(reader io.ReadCloser) error {
 
 type encodedAddress struct {
 	Mediatype string `json:"mediatype"`
-	Offset    int    `json:"offset"`
-	Size      int    `json:"size"`
+	Offset    int64  `json:"offset"`
+	Size      int64  `json:"size"`
 	Hash      []byte `json:"hash"`
 }
 

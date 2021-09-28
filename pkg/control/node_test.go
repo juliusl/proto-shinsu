@@ -12,7 +12,9 @@ import (
 )
 
 func TestNodeAPI(t *testing.T) {
-	n, err := CreateNode()
+	tr := NewTransport()
+
+	n, err := CreateNode(tr)
 	if err != nil {
 		t.Error(err.Error())
 	}
@@ -44,7 +46,7 @@ func TestNodeAPI(t *testing.T) {
 
 		return FromCache(resp)
 	})
-	sd.SetExpected(len("test string hello"))
+	sd.SetExpected(int64(len("test string hello")))
 	ctx := context.Background()
 	temp, err := os.Create("test")
 	if err != nil {

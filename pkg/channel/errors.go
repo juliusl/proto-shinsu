@@ -11,7 +11,7 @@ import (
 var ErrIncompleteTransition = errors.New("incomplete transition")
 var ErrTemporaryOutage = errors.New("temporary source outage")
 
-func TemporaryOutage(current int, cooldown time.Duration) (*IncompleteTransition, error) {
+func TemporaryOutage(current int64, cooldown time.Duration) (*IncompleteTransition, error) {
 	timer := time.NewTimer(cooldown)
 	timer.Stop()
 
@@ -23,7 +23,7 @@ func TemporaryOutage(current int, cooldown time.Duration) (*IncompleteTransition
 	}, nil
 }
 
-func InterruptedTransition(current int, cooldown time.Duration) (*IncompleteTransition, error) {
+func InterruptedTransition(current int64, cooldown time.Duration) (*IncompleteTransition, error) {
 	if cooldown < MinimumCooldown {
 		return nil, fmt.Errorf("cooldown must be greater than %d", MinimumCooldown)
 	}
@@ -40,7 +40,7 @@ func InterruptedTransition(current int, cooldown time.Duration) (*IncompleteTran
 }
 
 type IncompleteTransition struct {
-	current       int
+	current       int64
 	cooldown      time.Duration
 	cooldownTimer *time.Timer
 	error
@@ -58,7 +58,7 @@ func (i *IncompleteTransition) Unwrap() error {
 	return i.error
 }
 
-func (i *IncompleteTransition) Current() int {
+func (i *IncompleteTransition) Current() int64 {
 	return i.current
 }
 

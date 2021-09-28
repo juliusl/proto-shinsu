@@ -2,54 +2,57 @@ package control
 
 import (
 	"context"
-	"errors"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 
 	"github.com/juliusl/shinsu/pkg/channel"
 )
 
-// TODO this should return a stream descriptor
-// FromAddress is a function that returns an instance of a State struct
-func FromAddress(client *http.Client, address *Address, hash func([]byte) ([]byte, error)) (*State, error) {
-	method, url, err := address.APILocation()
+// CreateStreamDescriptor is a function that returns an instance of a State struct
+func CreateStreamDescriptor(client *http.Client, resolve func() (*Address, *url.URL, error), expectedHash []byte, hash func([]byte) ([]byte, error)) (*StreamDescriptor, error) {
+	add, loc, err := resolve()
 	if err != nil {
 		return nil, err
 	}
 
-	if method != http.MethodGet {
-		return nil, errors.New("address does not have required method GET")
-	}
-
-	resp, err := client.Get(url.String())
+	resp, err := client.Get(loc.String())
 	if err != nil {
 		return nil, err
 	}
 	defer resp.Body.Close()
 
-	s := &State{}
-
-	s.mediatype = resp.Header.Get("Content-Type")
 	size, err := strconv.ParseInt(resp.Header.Get("Content-Length"), 10, 32)
 	if err != nil {
 		return nil, err
 	}
-	s.size = int(size)
 
+	s := State{}.Start(size, expectedHash)
 	content, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}
-	s.offset = len(content)
+
 	h, err := hash(content)
 	if err != nil {
 		return nil, err
 	}
-	s.hash = h
 
-	return s, nil
+	contentType := resp.Header.Get("Content-Type")
+	err = s.Commit(contentType, h)
+	if err != nil {
+		return nil, err
+	}
+
+	sdesc := &StreamDescriptor{
+		accepts: s.mediatype,
+		state:   s,
+		address: add,
+	}
+
+	return sdesc, nil
 }
 
 type StreamDescriptor struct {
@@ -57,18 +60,6 @@ type StreamDescriptor struct {
 	address *Address
 	state   *State
 	channel.TransientDescriptor
-}
-
-func (s *StreamDescriptor) SetAccepts(accepts string) {
-	s.accepts = accepts
-}
-
-func (s *StreamDescriptor) SetState(state *State) {
-	s.state = state
-}
-
-func (s *StreamDescriptor) SetAddress(address *Address) {
-	s.address = address
 }
 
 // Update is a function that updates the source for the stream descriptor

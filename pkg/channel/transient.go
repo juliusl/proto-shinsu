@@ -12,8 +12,8 @@ import (
 // TransientDescriptor is a struct that represents data that is in a transient state. This means that state is changing.
 // When the location, source, and expected values are set, the transition will automatically proceed, until offset == expected
 type TransientDescriptor struct {
-	offset     int
-	expected   int
+	offset     int64
+	expected   int64
 	location   *url.URL
 	source     *StableDescriptor
 	transition TransitionFunction
@@ -79,7 +79,7 @@ func (t *TransientDescriptor) SetSource(source *StableDescriptor) (*TransientDes
 	return t, nil
 }
 
-func (t *TransientDescriptor) SetExpected(expected int) (*TransientDescriptor, error) {
+func (t *TransientDescriptor) SetExpected(expected int64) (*TransientDescriptor, error) {
 	if t == nil {
 		return nil, errors.New("reference to transient descriptor is nil")
 	}
@@ -95,7 +95,7 @@ func (t *TransientDescriptor) SetExpected(expected int) (*TransientDescriptor, e
 	return t, nil
 }
 
-func (t *TransientDescriptor) SetOffset(offset int) (*TransientDescriptor, error) {
+func (t *TransientDescriptor) SetOffset(offset int64) (*TransientDescriptor, error) {
 	if t == nil {
 		return nil, errors.New("reference to transient descriptor is nil")
 	}
@@ -270,7 +270,7 @@ func (t *TransientDescriptor) Wait(timeout time.Duration) error {
 	return t.err
 }
 
-func (t *TransientDescriptor) Position() (current int, expected int, progress float32, err error) {
+func (t *TransientDescriptor) Position() (current int64, expected int64, progress float32, err error) {
 	if t == nil {
 		return 0, 0, 0.0, errors.New("reference to transient descriptor is nil")
 	}

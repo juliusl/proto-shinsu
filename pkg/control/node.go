@@ -31,7 +31,15 @@ var _ (http.CookieJar) = (*Node)(nil)
 // given URL.  It may or may not choose to save the cookies, depending
 // on the jar's policy and implementation.
 func (n *Node) SetCookies(u *url.URL, cookies []*http.Cookie) {
+	if n.address.host != u.Host {
+		return
+	}
 
+	switch u.Scheme {
+	case "http", "https":
+	case "api":
+	case "cache", "file":
+	}
 }
 
 // Cookies returns the cookies to send in a request for the given URL.

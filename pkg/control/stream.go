@@ -2,8 +2,8 @@ package control
 
 import (
 	"context"
+	"io"
 	"io/ioutil"
-	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
@@ -12,8 +12,13 @@ import (
 )
 
 // CreateStreamDescriptor is a function that returns an instance of a State struct
-func CreateStreamDescriptor(client *http.Client, resolve func() (*Address, *url.URL, error), expectedHash []byte, hash func([]byte) ([]byte, error)) (*StreamDescriptor, error) {
+func CreateStreamDescriptor(node *Node, resolve func() (*Address, *url.URL, error), expectedHash []byte, hash func([]byte) ([]byte, error)) (*StreamDescriptor, error) {
 	add, loc, err := resolve()
+	if err != nil {
+		return nil, err
+	}
+
+	client, err := node.GetClient()
 	if err != nil {
 		return nil, err
 	}
@@ -46,11 +51,40 @@ func CreateStreamDescriptor(client *http.Client, resolve func() (*Address, *url.
 		return nil, err
 	}
 
+	s.offset = int64(len(content))
+
 	sdesc := &StreamDescriptor{
 		accepts: s.mediatype,
 		state:   s,
 		address: add,
 	}
+
+	sdesc.SetTransition(
+		func(ctx context.Context, url *url.URL, reader io.Reader) (*channel.StableDescriptor, error) {
+			url.Scheme = "cache"
+
+			resp, err := client.Post(url.String(), s.mediatype, reader)
+			if err != nil {
+				return nil, err
+			}
+
+			loc, err := resp.Location()
+			if err != nil {
+				return nil, err
+			}
+
+			return node.transport.Source(ctx, loc)
+		})
+	sdesc.SetExpected(size)
+
+	ctx := context.Background()
+	ctx, cancelFunc := context.WithCancel(ctx)
+	sdesc.cancel = cancelFunc
+	src, err := node.transport.Source(ctx, loc)
+	if err != nil {
+		return nil, err
+	}
+	sdesc.SetSource(src)
 
 	return sdesc, nil
 }
@@ -59,7 +93,12 @@ type StreamDescriptor struct {
 	accepts string
 	address *Address
 	state   *State
+	cancel  context.CancelFunc
 	channel.TransientDescriptor
+}
+
+func (s *StreamDescriptor) Cancel() {
+	s.cancel()
 }
 
 // Update is a function that updates the source for the stream descriptor

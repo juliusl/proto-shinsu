@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-var ErrIncompleteTransition = errors.New("incomplete transition")
+var ErrInterruptedTransition = errors.New("interrupted transition")
 var ErrTemporaryOutage = errors.New("temporary source outage")
 
 func TemporaryOutage(current int64, cooldown time.Duration) (*IncompleteTransition, error) {
@@ -35,7 +35,7 @@ func InterruptedTransition(current int64, cooldown time.Duration) (*IncompleteTr
 		current:       current,
 		cooldown:      cooldown,
 		cooldownTimer: timer,
-		error:         ErrIncompleteTransition,
+		error:         ErrInterruptedTransition,
 	}, nil
 }
 

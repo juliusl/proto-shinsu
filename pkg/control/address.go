@@ -59,6 +59,15 @@ func (s *Address) SetReference(reference string) (*Address, error) {
 	return s, nil
 }
 
+const node_format = "node://%s/%s/%s"
+
+func (s *Address) NodeRoot() (*url.URL, error) {
+	s.RLock()
+	defer s.RUnlock()
+
+	return url.Parse(fmt.Sprintf(node_format, s.host, s.namespace, s.reference))
+}
+
 func (s *Address) HTTPSRoot() (*url.URL, error) {
 	s.RLock()
 	defer s.RUnlock()
@@ -69,44 +78,6 @@ func (s *Address) HTTPSRoot() (*url.URL, error) {
 	}
 
 	return u, nil
-}
-
-func (s *Address) HTTPRoot() (*url.URL, error) {
-	s.RLock()
-	defer s.RUnlock()
-
-	u, err := url.Parse(fmt.Sprintf("http://%s/%s/%s/%s/%s", s.host, s.root, s.namespace, s.term, s.reference))
-	if err != nil {
-		return nil, err
-	}
-
-	return u, nil
-}
-
-const api_format = "api://%s/%s" // api://<root>/<term>
-func (s *Address) APIRoot() (*url.URL, error) {
-	s.RLock()
-	defer s.RUnlock()
-
-	return url.Parse(fmt.Sprintf(api_format, s.root, s.term))
-}
-
-const cache_format = "cache://%s/%s/%s/%s"
-
-func (s *Address) CacheRoot(hash string) (*url.URL, error) {
-	s.RLock()
-	defer s.RUnlock()
-
-	return url.Parse(fmt.Sprintf(cache_format, s.host, s.namespace, s.reference, hash))
-}
-
-const file_format = "file://%s/%s/%s"
-
-func (s *Address) FileRoot() (*url.URL, error) {
-	s.RLock()
-	defer s.RUnlock()
-
-	return url.Parse(fmt.Sprintf(file_format, s.host, s.namespace, s.reference))
 }
 
 func (s *Address) SecureRequest(ctx context.Context, body io.Reader) (*http.Request, error) {
@@ -134,6 +105,18 @@ func (s *Address) SecureRequest(ctx context.Context, body io.Reader) (*http.Requ
 	return req, nil
 }
 
+func (s *Address) HTTPRoot() (*url.URL, error) {
+	s.RLock()
+	defer s.RUnlock()
+
+	u, err := url.Parse(fmt.Sprintf("http://%s/%s/%s/%s/%s", s.host, s.root, s.namespace, s.term, s.reference))
+	if err != nil {
+		return nil, err
+	}
+
+	return u, nil
+}
+
 func (s *Address) InsecureRequest(ctx context.Context, body io.Reader) (*http.Request, error) {
 	method := http.MethodGet
 	if body != nil {
@@ -151,4 +134,48 @@ func (s *Address) InsecureRequest(ctx context.Context, body io.Reader) (*http.Re
 	}
 
 	return req, nil
+}
+
+const api_format = "api://%s/%s/%s"
+
+func (s *Address) APIRoot() (*url.URL, error) {
+	s.RLock()
+	defer s.RUnlock()
+
+	return url.Parse(fmt.Sprintf(api_format, s.host, s.root, s.term))
+}
+
+func (s *Address) API(methods ...string) (*url.URL, error) {
+	root, err := s.APIRoot()
+	if err != nil {
+		return nil, err
+	}
+
+	q := root.Query()
+
+	for _, m := range methods {
+		q.Add("method", m)
+	}
+
+	root.RawQuery = q.Encode()
+
+	return root, nil
+}
+
+const cache_format = "cache://%s/%s/%s"
+
+func (s *Address) CacheRoot() (*url.URL, error) {
+	s.RLock()
+	defer s.RUnlock()
+
+	return url.Parse(fmt.Sprintf(cache_format, s.host, s.root, s.term))
+}
+
+const file_format = "file://%s/%s/%s"
+
+func (s *Address) FileRoot() (*url.URL, error) {
+	s.RLock()
+	defer s.RUnlock()
+
+	return url.Parse(fmt.Sprintf(file_format, s.host, s.namespace, s.reference))
 }

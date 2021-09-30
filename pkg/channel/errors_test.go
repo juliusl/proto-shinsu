@@ -27,7 +27,7 @@ func TestInterruptedTransition(t *testing.T) {
 		t.Fail()
 	}
 
-	if !errors.Is(interruption, ErrIncompleteTransition) {
+	if !errors.Is(interruption, ErrInterruptedTransition) {
 		t.Error("expected the interruption to be an ErrIncompleteTransition")
 		t.Fail()
 	}

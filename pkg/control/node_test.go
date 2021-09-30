@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"io/ioutil"
+	"net/http"
 	"net/url"
 	"os"
 	"testing"
@@ -12,9 +13,31 @@ import (
 )
 
 func TestNodeAPI(t *testing.T) {
-	tr := NewTransport()
+	tr, err := NewTransport("test-transport")
+	if err != nil {
+		t.Error(err)
+		t.Fail()
+	}
+	add := &Address{}
+	add, err = add.SetHost("test-transport")
+	if err != nil {
+		t.Error(err)
+		t.Fail()
+	}
 
-	n, err := CreateNode(tr)
+	add, err = add.SetRoot("v2")
+	if err != nil {
+		t.Error(err)
+		t.Fail()
+	}
+
+	add, err = add.SetTerm("blobs/uploads")
+	if err != nil {
+		t.Error(err)
+		t.Fail()
+	}
+
+	n, err := CreateNode(add, tr)
 	if err != nil {
 		t.Error(err.Error())
 	}
@@ -39,12 +62,23 @@ func TestNodeAPI(t *testing.T) {
 		}
 		url.RawQuery = ""
 
-		resp, err := n.GetClient().Post(url.String(), "cached.test+test", reader)
+		c, err := n.GetClient()
 		if err != nil {
 			return nil, err
 		}
 
-		return FromCache(resp)
+		url.Scheme = "cache"
+		resp, err := c.Post(url.String(), "test+test", reader)
+		if err != nil {
+			return nil, err
+		}
+
+		loc, err := resp.Location()
+		if err != nil {
+			return nil, err
+		}
+
+		return tr.Source(ctx, loc)
 	})
 	sd.SetExpected(int64(len("test string hello")))
 	ctx := context.Background()
@@ -61,11 +95,32 @@ func TestNodeAPI(t *testing.T) {
 		t.Error(err)
 		t.Fail()
 	}
-	sd.SetSource(fd.Channel())
+	sd.SetSource(fd.Source())
 
-	n.AddAPI("v2", "blobs/uploads", sd)
+	au, err := add.API(http.MethodPost, http.MethodPatch, http.MethodPut)
+	if err != nil {
+		t.Error(err)
+		t.Fail()
+	}
 
-	n.GetClient().Get("api:v2/blobs/uploads?method=POST&method=PATCH&method=PUT")
+	tr.AddAPI(add, sd)
+
+	c, err := n.GetClient()
+	if err != nil {
+		t.Error(err)
+		t.Fail()
+	}
+
+	resp, err := c.Get(au.String())
+	if err != nil {
+		t.Error(err)
+		t.Fail()
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		t.Error("expected status OK", resp.StatusCode, resp.Status)
+		t.Fail()
+	}
 
 	cached, err := sd.Source()
 	if err != nil {
@@ -87,6 +142,29 @@ func TestNodeAPI(t *testing.T) {
 
 	if string(d) != "test string hello" {
 		t.Error("unexpected cache value")
+		t.Fail()
+	}
+
+	reload, err := CreateStreamDescriptor(
+		n,
+		func() (*Address, *url.URL, error) {
+			u, err := add.CacheRoot()
+			if err != nil {
+				return nil, nil, err
+			}
+
+			return add, u, nil
+		},
+		[]byte("test"),
+		func(b []byte) ([]byte, error) { return []byte("test"), nil })
+
+	if err != nil {
+		t.Error(err)
+		t.Fail()
+	}
+
+	if reload.state == nil {
+		t.Error("expected a state")
 		t.Fail()
 	}
 }

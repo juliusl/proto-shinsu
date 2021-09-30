@@ -140,7 +140,7 @@ func (t *TransientDescriptor) ShouldTransition(ctx context.Context) (*TransientD
 		return nil, errors.New("transition function is not set")
 	}
 
-	if t.err != nil && !errors.Is(t.err, ErrIncompleteTransition) {
+	if t.err != nil && !errors.Is(t.err, ErrInterruptedTransition) {
 		return nil, t.err
 	}
 
@@ -222,7 +222,7 @@ func (t *TransientDescriptor) Transition(ctx context.Context) (*TransientDescrip
 			// Either they return ErrIncompleteTransition directly, which implies that offset should remain at 0
 			// Or they return an IncompleTransition structure that records the current offset. If the structure is
 			// returned instead, that indicates that some progress was made however the transition is incomplete. This allows for resuming.
-			if errors.Is(err, ErrIncompleteTransition) {
+			if errors.Is(err, ErrInterruptedTransition) {
 				inc, ok := err.(*IncompleteTransition)
 				if !ok {
 					return

@@ -14,7 +14,11 @@ import (
 	"github.com/juliusl/shinsu/pkg/channel"
 )
 
-func NewFileDescriptor(ctx context.Context, mediatype, path string, stat func(string) (os.FileInfo, error), open func(name string) (*os.File, error)) (*FileDescriptor, error) {
+func NewFileDescriptor(
+	ctx context.Context,
+	mediatype, path string,
+	stat func(string) (os.FileInfo, error),
+	open func(name string) (*os.File, error)) (*FileDescriptor, error) {
 	finfo, err := stat(path)
 	if err != nil {
 		return nil, err
@@ -93,25 +97,20 @@ func (f *FileDescriptor) Resume() (io.Reader, error) {
 	return f.Open()
 }
 
-func (f *FileDescriptor) Channel() *channel.StableDescriptor {
+func (f *FileDescriptor) Source() *channel.StableDescriptor {
 	return f.channel
 }
 
 func (f *FileDescriptor) ServeHTTP(writer http.ResponseWriter, req *http.Request) {
 	accept := req.Header.Get("Accept")
-	if accept == "" {
-		writer.WriteHeader(404)
-		return
-	}
-
-	if !strings.Contains(accept, f.mediaType) {
-		writer.WriteHeader(404)
+	if accept == "" || !strings.Contains(accept, f.mediaType) {
+		writer.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
 	readcloser, err := f.channel.Open()
 	if err != nil {
-		writer.WriteHeader(500)
+		writer.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
@@ -119,13 +118,11 @@ func (f *FileDescriptor) ServeHTTP(writer http.ResponseWriter, req *http.Request
 
 	written, err := io.Copy(writer, readcloser)
 	if err != nil {
-		writer.WriteHeader(500)
+		writer.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
 	headers := writer.Header()
 	headers.Set("Content-Length", fmt.Sprint(written))
 	headers.Set("Content-Type", req.Header.Get("Content-Type"))
-
-	writer.WriteHeader(200)
 }

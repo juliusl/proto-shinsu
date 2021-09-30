@@ -52,7 +52,7 @@ func TestTransientTransitionInterruption(t *testing.T) {
 
 	current, total, progress, err := desc.Position()
 	if err != nil {
-		if !errors.Is(err, ErrIncompleteTransition) {
+		if !errors.Is(err, ErrInterruptedTransition) {
 			t.Error(err)
 			t.Fail()
 		}

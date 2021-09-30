@@ -2,7 +2,6 @@ package control
 
 import (
 	"bytes"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -12,32 +11,64 @@ import (
 )
 
 func TestCreateStreamDescriptor(t *testing.T) {
-	transport := &http.Transport{}
-	transport.RegisterProtocol("file", &testRoundTripper{})
+	a := &Address{
+		root:      "v2",
+		namespace: "test",
+		term:      "address",
+		reference: "TestFromAddress",
+	}
+	tr, err := NewTransport("localhost")
+	if err != nil {
+		t.Error(err)
+		t.Fail()
+	}
 
-	client := &http.Client{}
-	client.Transport = transport
+	n, err := CreateNode(a, tr)
+	if err != nil {
+		t.Error(err)
+		t.Fail()
+	}
+
+	cl, err := n.GetClient()
+	if err != nil {
+		t.Error(err)
+		t.Fail()
+	}
+
+	u, err := a.CacheRoot()
+	if err != nil {
+		t.Error(err)
+		t.Fail()
+	}
+
+	resp, err := cl.Post(u.String(), "test+test", strings.NewReader("test content"))
+	if err != nil {
+		t.Error(err)
+		t.Fail()
+	}
+
+	if resp.StatusCode != http.StatusAccepted {
+		t.Error("expected the cache to accept the content")
+		t.Fail()
+	}
+
+	h, err := HashCRC64([]byte("test content"))
+	if err != nil {
+		t.Error(err)
+		t.Fail()
+	}
 
 	sdesc, err := CreateStreamDescriptor(
-		client,
+		n,
 		func() (*Address, *url.URL, error) {
-			a := &Address{
-				host:      "localhost",
-				root:      "v2",
-				namespace: "test",
-				term:      "address",
-				reference: "TestFromAddress",
-			}
-
-			fr, err := a.FileRoot()
+			fr, err := a.CacheRoot()
 			if err != nil {
-				t.Error(err)
-				t.Fail()
+				return nil, nil, err
 			}
 
 			return a, fr, nil
 		},
-		[]byte{124, 183, 189, 253, 47, 166, 166, 154},
+		h,
 		HashCRC64)
 	if err != nil {
 		t.Error(err)
@@ -70,26 +101,10 @@ func TestCreateStreamDescriptor(t *testing.T) {
 	}
 
 	// Simulate reading this data later
-	later := State{}.Start(23, []byte{124, 183, 189, 253, 47, 166, 166, 154})
+	later := State{}.Start(int64(len("test content")), h)
 	err = later.Load(ioutil.NopCloser(bytes.NewReader(stored)))
 	if err != nil {
 		t.Error(err)
 		t.Fail()
 	}
-}
-
-type testRoundTripper struct {
-}
-
-func (t *testRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
-
-	resp := &http.Response{}
-	resp.Body = ioutil.NopCloser(strings.NewReader("this is my cool content"))
-	headers := &http.Header{}
-	headers.Add("Content-Length", fmt.Sprint(len("this is my cool content")))
-	headers.Add("Content-Type", "test.data+text")
-	resp.Header = *headers
-	resp.StatusCode = 200
-
-	return resp, nil
 }

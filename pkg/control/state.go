@@ -27,7 +27,7 @@ func (s State) Start(expectedsize int64, expectedHash []byte) *State {
 
 func (s *State) Commit(mediatype string, hash []byte) error {
 	if s.mediatype == TransientMediaType {
-		checksum, err := s.Compare(hash)
+		checksum, err := s.CompareHash(hash)
 		if err != nil {
 			return err
 		}
@@ -57,18 +57,38 @@ func (s State) IsStable() error {
 	return nil
 }
 
-func (s *State) Compare(hash []byte) (bool, error) {
+func (s *State) Compare(other *State) (bool, error) {
+	if s == other {
+		return true, nil
+	}
+
+	if s.mediatype != other.mediatype {
+		return false, nil
+	}
+
+	if s.offset != other.offset {
+		return false, nil
+	}
+
+	if s.size != other.size {
+		return false, nil
+	}
+
+	return s.CompareHash(other.hash)
+}
+
+func (s *State) CompareHash(hash []byte) (bool, error) {
 	checksum, err := binary.ReadUvarint(bytes.NewReader(s.hash))
 	if err != nil {
 		return false, err
 	}
 
-	other, err := binary.ReadUvarint(bytes.NewReader(hash))
+	otherchecksum, err := binary.ReadUvarint(bytes.NewReader(hash))
 	if err != nil {
 		return false, err
 	}
 
-	return checksum == other, nil
+	return checksum == otherchecksum, nil
 }
 
 func (s *State) Store(writer io.WriteCloser) error {

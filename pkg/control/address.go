@@ -9,6 +9,16 @@ import (
 	"sync"
 )
 
+func EmptyAddress() *Address {
+	return &Address{
+		host:      `empty://?label=host`,
+		root:      `empty://?label=root`,
+		namespace: `empty://?label=namespace`,
+		term:      `empty://?label=term`,
+		reference: `empty://?label=reference`,
+	}
+}
+
 // Address is an opaque type that can be formatted into a valid URI
 type Address struct {
 	host      string
@@ -17,6 +27,10 @@ type Address struct {
 	term      string
 	reference string
 	sync.RWMutex
+}
+
+func (s *Address) Record() (host string, root string, namespace string, term string, reference string) {
+	return s.host, s.root, s.namespace, s.term, s.reference
 }
 
 func (s *Address) SetHost(host string) (*Address, error) {

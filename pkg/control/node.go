@@ -2,11 +2,10 @@ package control
 
 import (
 	"bytes"
+	"encoding/base64"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
-	"strings"
 )
 
 func CreateNode(address *Address, transport *NodeTransport) (*Node, error) {
@@ -36,7 +35,12 @@ func ParseCookies(cookies []*http.Cookie) (address *Address, state *State, err e
 		if c.Name == "State" {
 			state = &State{}
 
-			err := state.Load(ioutil.NopCloser(strings.NewReader(c.Value)))
+			b, err := base64.StdEncoding.DecodeString(c.Value)
+			if b != nil {
+				return nil, nil, err
+			}
+
+			err = state.Load(io.NopCloser(bytes.NewReader(b)))
 			if err != nil {
 				return nil, nil, err
 			}
@@ -47,6 +51,10 @@ func ParseCookies(cookies []*http.Cookie) (address *Address, state *State, err e
 }
 
 func MarshalCookies(add *Address, state *State) []*http.Cookie {
+	if add == nil {
+		return nil
+	}
+
 	a, err := add.URI()
 	if err != nil {
 		return nil
@@ -56,6 +64,7 @@ func MarshalCookies(add *Address, state *State) []*http.Cookie {
 	go state.Store(pw)
 	buf := &bytes.Buffer{}
 	buf.ReadFrom(pr)
+	defer pr.Close()
 
 	return []*http.Cookie{
 		{
@@ -64,7 +73,7 @@ func MarshalCookies(add *Address, state *State) []*http.Cookie {
 		},
 		{
 			Name:  "State",
-			Value: buf.String(),
+			Value: base64.StdEncoding.EncodeToString(buf.Bytes()),
 		},
 	}
 }

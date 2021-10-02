@@ -235,4 +235,21 @@ func TestNodeAPI(t *testing.T) {
 		t.Error("expected a state")
 		t.Fail()
 	}
+
+	err = tr.AddAPI(add, reload)
+	if err != nil {
+		t.Error(err.Error())
+		t.Fail()
+	}
+
+	resp, err = c.Get(au.String())
+	if err != nil {
+		t.Error(err.Error())
+		t.Fail()
+	}
+
+	if resp.StatusCode != 200 {
+		t.Error("unexpected status code")
+		t.Fail()
+	}
 }

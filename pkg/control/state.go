@@ -92,6 +92,8 @@ func (s *State) CompareHash(hash []byte) (bool, error) {
 }
 
 func (s *State) Store(writer io.WriteCloser) error {
+	defer writer.Close()
+
 	return json.NewEncoder(writer).Encode(&encodedAddress{
 		Mediatype: s.mediatype,
 		Offset:    s.offset,
@@ -101,6 +103,8 @@ func (s *State) Store(writer io.WriteCloser) error {
 }
 
 func (s *State) Load(reader io.ReadCloser) error {
+	defer reader.Close()
+
 	decoded := &encodedAddress{}
 	err := json.NewDecoder(reader).Decode(decoded)
 	if err != nil {

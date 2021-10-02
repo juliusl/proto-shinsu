@@ -10,7 +10,7 @@ import (
 	"github.com/juliusl/shinsu/pkg/channel"
 )
 
-// CreateStreamDescriptor is a function that returns an instance of a State struct
+// CreateStreamDescriptor is a function that returns an instance of a StreamDescriptor struct
 func CreateStreamDescriptor(node *Node, resolve func() (*Address, *url.URL, error), expectedHash []byte, hash func([]byte) ([]byte, error)) (*StreamDescriptor, error) {
 	add, loc, err := resolve()
 	if err != nil {

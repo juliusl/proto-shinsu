@@ -86,7 +86,7 @@ func (s *Address) SetReference(reference string) (*Address, error) {
 
 const address_format = "%s://%s@%s/%s#%s"
 
-func (s *Address) String() (*url.URL, error) {
+func (s *Address) URI() (*url.URL, error) {
 	s.RLock()
 	defer s.RUnlock()
 

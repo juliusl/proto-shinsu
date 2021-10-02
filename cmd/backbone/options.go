@@ -105,7 +105,7 @@ func handleOption(option, value string) options {
 var (
 	node options = options{
 		name:        "option: node\n",
-		usage:       "usage: --node <root>://<host>@<term>\n", // This needs to output a new node address
+		usage:       "usage: --node <address>#<next address>\n", // This needs to output a new node address
 		description: "Use this option to add a node to the control group\n",
 	}
 	api options = options{

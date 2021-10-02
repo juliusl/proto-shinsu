@@ -56,7 +56,7 @@ func print_address(a *control.Address) {
 
 	fmt.Println(u.String())
 
-	u, err = a.String()
+	u, err = a.URI()
 	if err != nil {
 		panic(err.Error())
 	}

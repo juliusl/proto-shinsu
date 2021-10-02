@@ -1,8 +1,12 @@
 package control
 
 import (
+	"bytes"
+	"io"
+	"io/ioutil"
 	"net/http"
 	"net/url"
+	"strings"
 )
 
 func CreateNode(address *Address, transport *NodeTransport) (*Node, error) {
@@ -20,18 +24,71 @@ func CreateNode(address *Address, transport *NodeTransport) (*Node, error) {
 	return n, nil
 }
 
-func ParseCookies(cookies []*http.Cookie) (*Address, *State, error) {
-	// v2://sha256:a7bb12345f79fba6999132a5e3c796b37803adb14843d3de406b8218a725b0c6@registry-1.docker.io/library/ubuntu#blobs/uploads
-	return nil, nil, nil
+func ParseCookies(cookies []*http.Cookie) (address *Address, state *State, err error) {
+	for _, c := range cookies {
+		if c.Name == "Address" {
+			address, err = EmptyAddress().FromString(c.Value)
+			if err != nil {
+				return nil, nil, err
+			}
+		}
+
+		if c.Name == "State" {
+			state = &State{}
+
+			err := state.Load(ioutil.NopCloser(strings.NewReader(c.Value)))
+			if err != nil {
+				return nil, nil, err
+			}
+		}
+	}
+
+	return address, state, nil
 }
 
 func MarshalCookies(add *Address, state *State) []*http.Cookie {
-	return nil
+	a, err := add.URI()
+	if err != nil {
+		return nil
+	}
+
+	pr, pw := io.Pipe()
+	go state.Store(pw)
+	buf := &bytes.Buffer{}
+	buf.ReadFrom(pr)
+
+	return []*http.Cookie{
+		{
+			Name:  "Address",
+			Value: a.String(),
+		},
+		{
+			Name:  "State",
+			Value: buf.String(),
+		},
+	}
 }
 
 type Node struct {
 	address   *Address
 	transport *NodeTransport
+}
+
+func (n *Node) Clone(transport *NodeTransport) (*Node, error) {
+	u, err := n.address.URI()
+	if err != nil {
+		return nil, err
+	}
+
+	a, err := EmptyAddress().FromString(u.String())
+	if err != nil {
+		return nil, err
+	}
+
+	return &Node{
+		address:   a,
+		transport: transport,
+	}, nil
 }
 
 var _ (http.CookieJar) = (*Node)(nil)
@@ -66,7 +123,7 @@ func (n *Node) SetCookies(u *url.URL, cookies []*http.Cookie) {
 			return
 		}
 
-		r, err := add.String()
+		r, err := add.URI()
 		if err != nil {
 			return
 		}

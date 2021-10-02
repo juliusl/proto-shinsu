@@ -2,7 +2,6 @@ package control
 
 import (
 	"context"
-	"io"
 	"io/ioutil"
 	"net/url"
 	"strconv"
@@ -59,22 +58,12 @@ func CreateStreamDescriptor(node *Node, resolve func() (*Address, *url.URL, erro
 		address: add,
 	}
 
-	sdesc.SetTransition(
-		func(ctx context.Context, url *url.URL, reader io.Reader) (*channel.StableDescriptor, error) {
-			url.Scheme = "cache"
+	txfn, err := WriteCache(node, s.mediatype)
+	if err != nil {
+		return nil, err
+	}
 
-			resp, err := client.Post(url.String(), s.mediatype, reader)
-			if err != nil {
-				return nil, err
-			}
-
-			loc, err := resp.Location()
-			if err != nil {
-				return nil, err
-			}
-
-			return node.transport.Source(ctx, loc)
-		})
+	sdesc.SetTransition(txfn)
 	sdesc.SetExpected(size)
 
 	ctx := context.Background()

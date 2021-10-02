@@ -12,7 +12,7 @@ import (
 	"github.com/juliusl/shinsu/pkg/channel"
 )
 
-func NewTransport(name string) (*NodeTransport, error) {
+func NewTransport(name string, cacheTTL time.Duration) (*NodeTransport, error) {
 	n := &NodeTransport{api: make(map[string]*StreamDescriptor)}
 	n.RegisterProtocol("api", n)
 	n.RegisterProtocol("https", n)
@@ -25,7 +25,7 @@ func NewTransport(name string) (*NodeTransport, error) {
 		return nil, err
 	}
 
-	c, err := NewCache(uc, name, time.Hour*3)
+	c, err := NewCache(uc, name, cacheTTL)
 	if err != nil {
 		return nil, err
 	}

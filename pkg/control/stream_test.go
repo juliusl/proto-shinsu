@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestCreateStreamDescriptor(t *testing.T) {
@@ -17,7 +18,7 @@ func TestCreateStreamDescriptor(t *testing.T) {
 		term:      "address",
 		reference: "TestFromAddress",
 	}
-	tr, err := NewTransport("localhost")
+	tr, err := NewTransport("localhost", time.Hour*3)
 	if err != nil {
 		t.Error(err)
 		t.Fail()

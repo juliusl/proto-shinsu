@@ -68,7 +68,20 @@ func handleOption(option, value string) options {
 	default:
 		switch scope {
 		case api:
-			if value == "" {
+			if value == "" && option != "" {
+				u, err := url.Parse(option)
+				if err != nil {
+					return options{}
+				}
+
+				a, err := LastAddress(addresses[scope]).SetTerm("")
+				if err != nil {
+					return options{}
+				}
+
+				routes[a] = u
+				return scope
+			} else if value == "" {
 				return options{}
 			}
 

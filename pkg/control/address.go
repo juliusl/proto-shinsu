@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strings"
 	"sync"
 )
 
@@ -37,6 +38,8 @@ func (s *Address) SetHost(host string) (*Address, error) {
 	s.Lock()
 	defer s.Unlock()
 
+	host = strings.TrimLeft(host, "/")
+
 	s.host = host
 	return s, nil
 }
@@ -44,6 +47,8 @@ func (s *Address) SetHost(host string) (*Address, error) {
 func (s *Address) SetRoot(root string) (*Address, error) {
 	s.Lock()
 	defer s.Unlock()
+
+	root = strings.TrimLeft(root, "/")
 
 	s.root = root
 	return s, nil
@@ -53,6 +58,8 @@ func (s *Address) SetNamespace(namespace string) (*Address, error) {
 	s.Lock()
 	defer s.Unlock()
 
+	namespace = strings.TrimLeft(namespace, "/")
+
 	s.namespace = namespace
 	return s, nil
 }
@@ -60,6 +67,8 @@ func (s *Address) SetNamespace(namespace string) (*Address, error) {
 func (s *Address) SetTerm(term string) (*Address, error) {
 	s.Lock()
 	defer s.Unlock()
+
+	term = strings.TrimLeft(term, "/")
 
 	s.term = term
 	return s, nil
@@ -69,17 +78,70 @@ func (s *Address) SetReference(reference string) (*Address, error) {
 	s.Lock()
 	defer s.Unlock()
 
+	reference = strings.TrimLeft(reference, "/")
+
 	s.reference = reference
 	return s, nil
 }
 
-const node_format = "node://%s/%s/%s"
+const address_format = "%s://%s@%s/%s#%s"
 
-func (s *Address) NodeRoot() (*url.URL, error) {
+func (s *Address) String() (*url.URL, error) {
 	s.RLock()
 	defer s.RUnlock()
 
-	return url.Parse(fmt.Sprintf(node_format, s.host, s.namespace, s.reference))
+	u, err := url.Parse(fmt.Sprintf(address_format, s.root, s.reference, s.host, s.namespace, s.term))
+	if err != nil {
+		return nil, err
+	}
+
+	return u, nil
+}
+
+func (s *Address) FromString(str string) (*Address, error) {
+	s.Lock()
+	defer s.Unlock()
+
+	u, err := url.Parse(str)
+	if err != nil {
+		return nil, err
+	}
+
+	if u.Host != "" {
+		s.host = strings.TrimLeft(u.Host, "/")
+	}
+
+	if strings.TrimLeft(u.Path, "/") != "" {
+		s.namespace = strings.TrimLeft(u.Path, "/")
+	}
+
+	if u.Scheme != "" {
+		s.root = strings.TrimLeft(u.Scheme, "/")
+	}
+
+	if u.Fragment != "" {
+		s.term = strings.TrimLeft(u.Fragment, "/")
+	}
+
+	if u.User.String() != "" {
+		s.reference = strings.TrimLeft(u.User.String(), "/")
+	}
+
+	return s, nil
+}
+
+const ref_format = "ref://%s@%s/%s"
+
+func (s *Address) RefRoot() (*url.URL, error) {
+	s.RLock()
+	defer s.RUnlock()
+
+	u, err := url.Parse(fmt.Sprintf(ref_format, s.reference, s.host, s.namespace))
+	if err != nil {
+		return nil, err
+	}
+
+	return u, nil
 }
 
 func (s *Address) HTTPSRoot() (*url.URL, error) {
@@ -148,6 +210,15 @@ func (s *Address) InsecureRequest(ctx context.Context, body io.Reader) (*http.Re
 	}
 
 	return req, nil
+}
+
+const node_format = "node://%s/%s/%s"
+
+func (s *Address) NodeRoot() (*url.URL, error) {
+	s.RLock()
+	defer s.RUnlock()
+
+	return url.Parse(fmt.Sprintf(node_format, s.host, s.namespace, s.reference))
 }
 
 const api_format = "api://%s/%s/%s"

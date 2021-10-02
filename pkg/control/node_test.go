@@ -8,12 +8,80 @@ import (
 	"net/url"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/juliusl/shinsu/pkg/channel"
 )
 
+func TestNode(t *testing.T) {
+	tr, err := NewTransport("localhost", time.Hour*3)
+	if err != nil {
+		t.Error(err)
+		t.Fail()
+	}
+
+	a := EmptyAddress()
+	a, err = a.FromString("v2:///#blobs/uploads")
+	if err != nil {
+		t.Error(err)
+		t.Fail()
+	}
+
+	api, err := a.APIRoot()
+	if err != nil {
+		t.Error(err)
+		t.Fail()
+	}
+
+	if api.String() != "api://empty://?label=host/v2/blobs/uploads" {
+		t.Error("Unexpected api root", api.String())
+		t.Fail()
+	}
+
+	n, err := CreateNode(a, tr)
+	if err != nil {
+		t.Error(err)
+		t.Fail()
+	}
+
+	if n.address.host != "localhost" {
+		t.Error("Unexpected host")
+		t.Fail()
+	}
+
+	u, err := n.address.HTTPSRoot()
+	if err != nil {
+		t.Error(err)
+		t.Fail()
+	}
+
+	if u.String() != "https://localhost/v2/empty://?label=namespace/blobs/uploads/empty://?label=reference" {
+		t.Error("Unexpected https root", u.String())
+		t.Fail()
+	}
+
+	u, err = url.Parse("ref://v1@localhost/library/ubuntu")
+	if err != nil {
+		t.Error(err)
+		t.Fail()
+	}
+
+	n.SetCookies(u, nil)
+
+	u, err = n.address.HTTPRoot()
+	if err != nil {
+		t.Error()
+		t.Fail()
+	}
+
+	if u.String() != "http://localhost/v2/library/ubuntu/blobs/uploads/v1" {
+		t.Error("unexpected http root", u.String())
+		t.Fail()
+	}
+}
+
 func TestNodeAPI(t *testing.T) {
-	tr, err := NewTransport("test-transport")
+	tr, err := NewTransport("test-transport", time.Hour*3)
 	if err != nil {
 		t.Error(err)
 		t.Fail()

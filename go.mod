@@ -2,4 +2,9 @@ module github.com/juliusl/shinsu
 
 go 1.17
 
-require github.com/juliusl/gopts v0.0.0-20210930214059-703b466479f6
+require (
+	github.com/juliusl/gopts v0.0.0-20210930214059-703b466479f6
+	github.com/opencontainers/image-spec v1.0.1
+)
+
+require github.com/opencontainers/go-digest v1.0.0 // indirect

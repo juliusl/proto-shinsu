@@ -84,6 +84,23 @@ func (s *Address) SetReference(reference string) (*Address, error) {
 	return s, nil
 }
 
+func (s *Address) GetEmptyParameters() ([]*url.URL, error) {
+	out := make([]*url.URL, 0)
+
+	for _, v := range []string{s.host, s.namespace, s.reference, s.root, s.term} {
+		u, err := url.Parse(v)
+		if err != nil {
+			return nil, err
+		}
+
+		if u.Scheme == "empty" {
+			out = append(out, u)
+		}
+	}
+
+	return out, nil
+}
+
 const address_format = "%s://%s@%s/%s#%s"
 
 func (s *Address) URI() (*url.URL, error) {

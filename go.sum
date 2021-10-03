@@ -1,2 +1,6 @@
 github.com/juliusl/gopts v0.0.0-20210930214059-703b466479f6 h1:N+3e3MQD0Mi7EBwiig5TM8mI2T/p5ks0q6Lw8lKNbqk=
 github.com/juliusl/gopts v0.0.0-20210930214059-703b466479f6/go.mod h1:Wojcpjiop7jpWSAipgOBa5RWMFsadVzaf5AHD6vbR44=
+github.com/opencontainers/go-digest v1.0.0 h1:apOUWs51W5PlhuyGyz9FCeeBIOUDA/6nW8Oi/yOhh5U=
+github.com/opencontainers/go-digest v1.0.0/go.mod h1:0JzlMkj0TRzQZfJkVvzbP0HBR3IKzErnv2BNG4W4MAM=
+github.com/opencontainers/image-spec v1.0.1 h1:JMemWkRwHx4Zj+fVxWoMCFm/8sYGGrUVojFA6h/TRcI=
+github.com/opencontainers/image-spec v1.0.1/go.mod h1:BtxoFyWECRxE4U/7sNtV5W15zMzWCbyJoFRP3s7yZA0=
